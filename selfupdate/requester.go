@@ -1,7 +1,7 @@
 package selfupdate
 
 import (
-	"fmt"
+	"github.com/pkg/errors"
 	"io"
 	"net/http"
 )
@@ -22,11 +22,15 @@ type HTTPRequester struct {
 func (httpRequester *HTTPRequester) Fetch(url string) (io.ReadCloser, error) {
 	resp, err := http.Get(url)
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrapf(err,
+			"Couldn't get url=%s",
+			url)
 	}
 
 	if resp.StatusCode != 200 {
-		return nil, fmt.Errorf("bad http status from %s: %v", url, resp.Status)
+		return nil, errors.Errorf(
+			"bad http status from %s: %v",
+			url, resp.Status)
 	}
 
 	return resp.Body, nil
@@ -48,7 +52,8 @@ func (mr *mockRequester) handleRequest(requestHandler func(string) (io.ReadClose
 
 func (mr *mockRequester) Fetch(url string) (io.ReadCloser, error) {
 	if len(mr.fetches) <= mr.currentIndex {
-		return nil, fmt.Errorf("No for currentIndex %d to mock", mr.currentIndex)
+		return nil, errors.Errorf(
+			"No for currentIndex %d to mock", mr.currentIndex)
 	}
 	current := mr.fetches[mr.currentIndex]
 	mr.currentIndex++

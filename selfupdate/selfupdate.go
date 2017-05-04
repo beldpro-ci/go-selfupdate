@@ -30,7 +30,6 @@ import (
 	"compress/gzip"
 	"crypto/sha256"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -42,6 +41,7 @@ import (
 	"runtime"
 	"time"
 
+	"github.com/pkg/errors"
 	"github.com/kardianos/osext"
 	"github.com/kr/binarydist"
 	"gopkg.in/inconshreveable/go-update.v0"
@@ -50,9 +50,8 @@ import (
 const (
 	upcktimePath = "cktime"
 	plat         = runtime.GOOS + "-" + runtime.GOARCH
+	devValidTime = 7 * 24 * time.Hour
 )
-
-const devValidTime = 7 * 24 * time.Hour
 
 var ErrHashMismatch = errors.New("new file hash mismatch after patch")
 var up = update.New()
