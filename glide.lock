@@ -1,14 +1,12 @@
-hash: f01fc64dbaf4596ca140698fb86edb8aa290f0ad5b90fb849b790fb5e2fa8af7
-updated: 2017-05-04T09:03:51.449728664-03:00
+hash: b9bdba5e63088982cde8dc8df5212fe1380ec78b32c1cd2c622863236f4944ec
+updated: 2017-05-04T09:13:07.808218201-03:00
 imports:
 - name: github.com/kardianos/osext
   version: 6e7f843663477789fac7c02def0d0909e969b4e5
 - name: github.com/kr/binarydist
   version: 3035450ff8b987ec4373f65c40767f096b35f2d2
-- name: github.com/sanbornm/go-selfupdate
-  version: bf295275fb1ee4e347c09330ed9a3c76cc19895a
-  subpackages:
-  - selfupdate
+- name: github.com/pkg/errors
+  version: 645ef00459ed84a119197bfb8d8205042c6df63d
 - name: gopkg.in/inconshreveable/go-update.v0
   version: d8b0b1d421aa1cbf392c05869f8abbc669bb7066
   subpackages:

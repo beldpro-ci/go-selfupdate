@@ -2,7 +2,6 @@ package: github.com/beldpro-ci/go-selfupdate
 import:
 - package: github.com/kardianos/osext
 - package: github.com/kr/binarydist
-- package: github.com/sanbornm/go-selfupdate
-  subpackages:
-  - selfupdate
 - package: gopkg.in/inconshreveable/go-update.v0
+- package: github.com/pkg/errors
+  version: v0.8.0
