@@ -10,5 +10,8 @@ install: format
 	go build $(LD_FLAGS) -v
 	go install $(LD_FLAGS) -v
 
-.PHONY: format install
+example:
+	cd ./example/src/hello-updater &&  go build -v
+
+.PHONY: format install example
 

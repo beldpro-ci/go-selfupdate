@@ -2,6 +2,6 @@ vendor/
 public/
 go-selfupdate
 example/example-server
-example/hello-updater
+example/hello-updater/hello-updater
 example/public/
 example/deployment/

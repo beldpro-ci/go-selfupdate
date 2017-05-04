@@ -135,7 +135,11 @@ func (u *Updater) BackgroundRun() error {
 }
 
 func (u *Updater) wantUpdate() bool {
-	path := u.getExecRelativeDir(u.Dir + upcktimePath)
+	path, err := u.getExecRelativeDir(u.Dir + upcktimePath)
+	if err != nil {
+		log.Error(err)
+		return false
+	}
 	if u.CurrentVersion == "dev" || (!u.ForceCheck && readTime(path).After(time.Now())) {
 		return false
 	}
@@ -284,7 +288,7 @@ func (u *Updater) fetchBin() ([]byte, error) {
 	var fetchUrl = u.BinURL + fmt.Sprintf("%s/%s/%s.gz",
 		argCmdName, argInfoVersion, argPlatform)
 
-	log.WithField("url", patchUrl).Debug("Starting to fetch full binary")
+	log.WithField("url", fetchUrl).Debug("Starting to fetch full binary")
 
 	r, err := u.fetch(fetchUrl)
 	if err != nil {
