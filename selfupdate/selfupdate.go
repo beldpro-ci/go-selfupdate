@@ -33,7 +33,6 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
-	"log"
 	"math/rand"
 	"net/url"
 	"os"
@@ -144,6 +143,7 @@ func (u *Updater) wantUpdate() bool {
 	return writeTime(path, time.Now().Add(wait))
 }
 
+// update performs the actual update of the executable
 func (u *Updater) update() error {
 	path, err := osext.Executable()
 	if err != nil {
@@ -159,27 +159,29 @@ func (u *Updater) update() error {
 
 	err = u.fetchInfo()
 	if err != nil {
-		return err
+		return errors.Wrapf(err,
+			"Couldn't properly fetch JSON information for updates")
 	}
 	if u.Info.Version == u.CurrentVersion {
+		log.Debug("Already at latest version :)")
 		return nil
 	}
 	bin, err := u.fetchAndVerifyPatch(old)
 	if err != nil {
 		if err == ErrHashMismatch {
-			log.Println("update: hash mismatch from patched binary")
+			log.Debug("update: hash mismatch from patched binary")
 		} else {
 			if u.DiffURL != "" {
-				log.Println("update: patching binary,", err)
+				log.WithError(err).Debug("update: patching binary")
 			}
 		}
 
 		bin, err = u.fetchAndVerifyFullBin()
 		if err != nil {
 			if err == ErrHashMismatch {
-				log.Println("update: hash mismatch from full binary")
+				log.Debug("update: hash mismatch from full binary")
 			} else {
-				log.Println("update: fetching full binary,", err)
+				log.WithError(err).Debug("update: fetching full binary")
 			}
 			return err
 		}
@@ -233,41 +235,74 @@ func (u *Updater) fetchAndVerifyPatch(old io.Reader) ([]byte, error) {
 }
 
 func (u *Updater) fetchAndApplyPatch(old io.Reader) ([]byte, error) {
-	r, err := u.fetch(u.DiffURL + url.QueryEscape(u.CmdName) + "/" + url.QueryEscape(u.CurrentVersion) + "/" + url.QueryEscape(u.Info.Version) + "/" + url.QueryEscape(plat))
+	var argCmdName = url.QueryEscape(u.CmdName)
+	var argCurrentVersion = url.QueryEscape(u.CurrentVersion)
+	var argInfoVersion = url.QueryEscape(u.Info.Version)
+	var argPlatform = url.QueryEscape(plat)
+	var patchUrl = u.DiffURL + fmt.Sprintf("%s/%s/%s",
+		argCmdName, argCurrentVersion, argInfoVersion, argPlatform)
+
+	log.WithField("patch-url", patchUrl).Debug("Starting to fetch patch")
+
+	r, err := u.fetch(patchUrl)
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrapf(err,
+			"Errored fetching path (url=%s)",
+			patchUrl)
 	}
 	defer r.Close()
 	var buf bytes.Buffer
+
 	err = binarydist.Patch(old, &buf, r)
-	return buf.Bytes(), err
+	if err != nil {
+		return nil, errors.Wrapf(err,
+			"Errored using binarydist to patch (url=%s)",
+			patchUrl)
+	}
+
+	return buf.Bytes(), nil
 }
 
 func (u *Updater) fetchAndVerifyFullBin() ([]byte, error) {
 	bin, err := u.fetchBin()
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrapf(err,
+			"Errored fetching full binary")
 	}
 	verified := verifySha(bin, u.Info.Sha256)
 	if !verified {
-		return nil, ErrHashMismatch
+		return nil, errors.Wrapf(ErrHashMismatch,
+			"Hash mismatch")
 	}
 	return bin, nil
 }
 
 func (u *Updater) fetchBin() ([]byte, error) {
-	r, err := u.fetch(u.BinURL + url.QueryEscape(u.CmdName) + "/" + url.QueryEscape(u.Info.Version) + "/" + url.QueryEscape(plat) + ".gz")
+	var argCmdName = url.QueryEscape(u.CmdName)
+	var argInfoVersion = url.QueryEscape(u.Info.Version)
+	var argPlatform = url.QueryEscape(plat)
+	var fetchUrl = u.BinURL + fmt.Sprintf("%s/%s/%s.gz",
+		argCmdName, argInfoVersion, argPlatform)
+
+	log.WithField("url", patchUrl).Debug("Starting to fetch full binary")
+
+	r, err := u.fetch(fetchUrl)
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrapf(err,
+			"Failed to fetch full binary (url=%s)",
+			fetchUrl)
 	}
 	defer r.Close()
 	buf := new(bytes.Buffer)
+
 	gz, err := gzip.NewReader(r)
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrapf(err,
+			"Failed to create gzip reader")
 	}
 	if _, err = io.Copy(buf, gz); err != nil {
-		return nil, err
+		return nil, errors.Wrapf(err,
+			"Failed to copy gzip content to buf")
 	}
 
 	return buf.Bytes(), nil
@@ -289,7 +324,8 @@ func (u *Updater) fetch(url string) (io.ReadCloser, error) {
 	}
 
 	if readCloser == nil {
-		return nil, fmt.Errorf("Fetch was expected to return non-nil ReadCloser")
+		return nil, fmt.Errorf(
+			"Fetch was expected to return non-nil ReadCloser")
 	}
 
 	return readCloser, nil
@@ -317,5 +353,8 @@ func verifySha(bin []byte, sha []byte) bool {
 }
 
 func writeTime(path string, t time.Time) bool {
-	return ioutil.WriteFile(path, []byte(t.Format(time.RFC3339)), 0644) == nil
+	return ioutil.WriteFile(
+		path,
+		[]byte(t.Format(time.RFC3339)),
+		0644) == nil
 }
