@@ -1,5 +1,5 @@
-hash: b9bdba5e63088982cde8dc8df5212fe1380ec78b32c1cd2c622863236f4944ec
-updated: 2017-05-04T09:13:07.808218201-03:00
+hash: 0918d9f812128217c4028435bb066c06d6e21fd683f6c4989bfc96247a7f94c2
+updated: 2017-05-04T11:27:21.25304985-03:00
 imports:
 - name: github.com/kardianos/osext
   version: 6e7f843663477789fac7c02def0d0909e969b4e5
@@ -7,6 +7,8 @@ imports:
   version: 3035450ff8b987ec4373f65c40767f096b35f2d2
 - name: github.com/pkg/errors
   version: 645ef00459ed84a119197bfb8d8205042c6df63d
+- name: github.com/Sirupsen/logrus
+  version: ba1b36c82c5e05c4f912a88eab0dcd91a171688f
 - name: gopkg.in/inconshreveable/go-update.v0
   version: d8b0b1d421aa1cbf392c05869f8abbc669bb7066
   subpackages:

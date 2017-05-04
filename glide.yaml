@@ -5,3 +5,5 @@ import:
 - package: gopkg.in/inconshreveable/go-update.v0
 - package: github.com/pkg/errors
   version: v0.8.0
+- package: github.com/Sirupsen/logrus
+  version: v0.11.5

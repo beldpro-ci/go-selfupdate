@@ -14,8 +14,7 @@ type Requester interface {
 
 // HTTPRequester is the normal requester that is used and does an HTTP
 // to the url location requested to retrieve the specified data.
-type HTTPRequester struct {
-}
+type HTTPRequester struct{}
 
 // Fetch will return an HTTP request to the specified url and return
 // the body of the result. An error will occur for a non 200 status code.

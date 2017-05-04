@@ -41,9 +41,10 @@ import (
 	"runtime"
 	"time"
 
-	"github.com/pkg/errors"
+	log "github.com/Sirupsen/logrus"
 	"github.com/kardianos/osext"
 	"github.com/kr/binarydist"
+	"github.com/pkg/errors"
 	"gopkg.in/inconshreveable/go-update.v0"
 )
 
@@ -89,31 +90,46 @@ type Updater struct {
 	}
 }
 
-func (u *Updater) getExecRelativeDir(dir string) string {
-	filename, _ := osext.Executable()
+// getExecRelativeDir relativizes the directory to store selfupdate state
+// from the executable directory.
+func (u *Updater) getExecRelativeDir(dir string) (string, error) {
+	filename, err := osext.Executable()
+	if err != nil {
+		return "", errors.Wrapf(err,
+			"Couldn't get path to self executable")
+	}
+
 	path := filepath.Join(filepath.Dir(filename), dir)
-	return path
+
+	log.
+		WithField("executable", filename).
+		WithField("relative-path", path).
+		Debug("Directory to store selfupdate state")
+
+	return path, nil
 }
 
 // BackgroundRun starts the update check and apply cycle.
 func (u *Updater) BackgroundRun() error {
-	if err := os.MkdirAll(u.getExecRelativeDir(u.Dir), 0777); err != nil {
-		// fail
-		return err
+	dir, err := u.getExecRelativeDir(u.Dir)
+	if err != nil {
+		return errors.Wrapf(err,
+			"Couldn't get directory relative to executable for updates")
+	}
+
+	if err := os.MkdirAll(dir, 0777); err != nil {
+		return errors.Wrapf(err,
+			"Couldn't create directory for storing updates (dir=%s)",
+			dir)
 	}
 	if u.wantUpdate() {
 		if err := up.CanUpdate(); err != nil {
-			// fail
-			return err
+			return errors.Wrapf(err,
+				"Wants to update but can't")
 		}
-		//self, err := osext.Executable()
-		//if err != nil {
-		// fail update, couldn't figure out path to self
-		//return
-		//}
-		// TODO(bgentry): logger isn't on Windows. Replace w/ proper error reports.
 		if err := u.update(); err != nil {
-			return err
+			return errors.Wrapf(err,
+				"Failed performing update even though it can")
 		}
 	}
 	return nil
@@ -131,11 +147,13 @@ func (u *Updater) wantUpdate() bool {
 func (u *Updater) update() error {
 	path, err := osext.Executable()
 	if err != nil {
-		return err
+		return errors.Wrapf(err,
+			"Couldn't get path to executable (self)")
 	}
 	old, err := os.Open(path)
 	if err != nil {
-		return err
+		return errors.Wrapf(err,
+			"Couldn't open self executable")
 	}
 	defer old.Close()
 
@@ -181,18 +199,24 @@ func (u *Updater) update() error {
 	return nil
 }
 
+// fetchInfo gets the `json` file containing update information
 func (u *Updater) fetchInfo() error {
-	r, err := u.fetch(u.ApiURL + url.QueryEscape(u.CmdName) + "/" + url.QueryEscape(plat) + ".json")
+	var fullUrl = u.ApiURL + url.QueryEscape(u.CmdName) + "/" + url.QueryEscape(plat) + ".json"
+	r, err := u.fetch(fullUrl)
 	if err != nil {
-		return err
+		return errors.Wrapf(err,
+			"Couldn't fetch `json` with information for update (url=%s)",
+			fullUrl)
 	}
 	defer r.Close()
 	err = json.NewDecoder(r).Decode(&u.Info)
 	if err != nil {
-		return err
+		return errors.Wrapf(err,
+			"Couldn't decode JSON (%s)")
 	}
 	if len(u.Info.Sha256) != sha256.Size {
-		return errors.New("bad cmd hash in info")
+		return errors.Errorf(
+			"Bad cmd hash in JSON info")
 	}
 	return nil
 }

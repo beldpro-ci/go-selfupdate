@@ -136,6 +136,7 @@ func createBuildDir() {
 }
 
 func main() {
+	fmt.Println("Version: ", version)
 	outputDirFlag := flag.String("o", "public", "Output directory for writing updates")
 
 	var defaultPlatform string
