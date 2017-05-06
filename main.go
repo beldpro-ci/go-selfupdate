@@ -14,6 +14,7 @@ import (
 	"runtime"
 
 	"github.com/kr/binarydist"
+	"github.com/pkg/errors"
 )
 
 var version, genDir string
@@ -79,9 +80,25 @@ func createUpdate(path string, platform string) {
 	if err != nil {
 		panic(err)
 	}
-	w.Write(f)
-	w.Close() // You must close this first to flush the bytes to the buffer.
-	err = ioutil.WriteFile(filepath.Join(genDir, version, platform+".gz"), buf.Bytes(), 0755)
+
+	_, err = w.Write(f)
+	if err != nil {
+		panic(errors.Wrapf(err,
+			"Errored writing to gzip writer"))
+	}
+	err = w.Close() // You must close this first to flush the bytes to the buffer.
+	if err != nil {
+		panic(errors.Wrapf(err,
+			"Errored closing gzip writter"))
+	}
+	err = ioutil.WriteFile(
+		filepath.Join(genDir, version, platform+".gz"),
+		buf.Bytes(),
+		0755)
+	if err != nil {
+		panic(errors.Wrapf(err,
+			"Errored writing gzipped buffer to file"))
+	}
 
 	files, err := ioutil.ReadDir(genDir)
 	if err != nil {

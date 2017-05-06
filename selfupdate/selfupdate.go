@@ -40,11 +40,12 @@ import (
 	"runtime"
 	"time"
 
-	log "github.com/Sirupsen/logrus"
 	"github.com/kardianos/osext"
 	"github.com/kr/binarydist"
 	"github.com/pkg/errors"
 	"gopkg.in/inconshreveable/go-update.v0"
+
+	log "github.com/Sirupsen/logrus"
 )
 
 const (
@@ -173,19 +174,19 @@ func (u *Updater) update() error {
 	bin, err := u.fetchAndVerifyPatch(old)
 	if err != nil {
 		if err == ErrHashMismatch {
-			log.Debug("update: hash mismatch from patched binary")
+			log.Debug("Hash mismatch from patched binary")
 		} else {
 			if u.DiffURL != "" {
-				log.WithError(err).Debug("update: patching binary")
+				log.WithError(err).Debug("Patching binary")
 			}
 		}
 
 		bin, err = u.fetchAndVerifyFullBin()
 		if err != nil {
 			if err == ErrHashMismatch {
-				log.Debug("update: hash mismatch from full binary")
+				log.Debug("Hash mismatch from full binary")
 			} else {
-				log.WithError(err).Debug("update: fetching full binary")
+				log.WithError(err).Debug("Fetching full binary")
 			}
 			return err
 		}
@@ -227,10 +228,15 @@ func (u *Updater) fetchInfo() error {
 	return nil
 }
 
+// fetchAndVerifyPatch fetches the patch from a given URL,
+// applies it and then checks if the hash of the resulting
+// file matches the one expected as indicated by Info json.
+// Errors in case of mismatch.
 func (u *Updater) fetchAndVerifyPatch(old io.Reader) ([]byte, error) {
 	bin, err := u.fetchAndApplyPatch(old)
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrapf(err,
+			"Couldn't fetch and apply patch")
 	}
 	if !verifySha(bin, u.Info.Sha256) {
 		return nil, ErrHashMismatch
@@ -238,6 +244,14 @@ func (u *Updater) fetchAndVerifyPatch(old io.Reader) ([]byte, error) {
 	return bin, nil
 }
 
+// fetchAndApplyPatch fetches the bsdiff binary file from
+// `pathUrl` and then applies the patch against the old
+// executable.
+//
+//	-  Patch(old io.Reader, new io.Writer, patch io.Reader) error
+//	   applies `patch` to `old`, according to the bspatch algorithm,
+//	   and writes the result to `new`.
+//
 func (u *Updater) fetchAndApplyPatch(old io.Reader) ([]byte, error) {
 	var argCmdName = url.QueryEscape(u.CmdName)
 	var argCurrentVersion = url.QueryEscape(u.CurrentVersion)
@@ -375,7 +389,17 @@ func readTime(path string) time.Time {
 func verifySha(bin []byte, sha []byte) bool {
 	h := sha256.New()
 	h.Write(bin)
-	return bytes.Equal(h.Sum(nil), sha)
+
+	var computed = h.Sum(nil)
+	var bytesEqual = bytes.Equal(computed, sha)
+	if !bytesEqual {
+		log.
+			WithField("actual", computed).
+			WithField("expected", sha).
+			Warn("SHA mismatch")
+	}
+
+	return bytesEqual
 }
 
 func writeTime(path string, t time.Time) bool {
