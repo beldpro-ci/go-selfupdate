@@ -6,6 +6,9 @@ format:
 	cd selfupdate && gofmt -s -w .
 	gofmt -s -w ./main.go
 
+test:
+	cd ./selfupdate && go test -v
+
 install: format
 	go build $(LD_FLAGS) -v
 	go install $(LD_FLAGS) -v

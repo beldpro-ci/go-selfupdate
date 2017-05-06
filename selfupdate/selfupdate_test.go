@@ -4,9 +4,14 @@ import (
 	"bytes"
 	"crypto/sha256"
 	"fmt"
+	log "github.com/Sirupsen/logrus"
 	"io"
 	"testing"
 )
+
+func init() {
+	log.SetLevel(log.DebugLevel)
+}
 
 var testHash = sha256.New()
 

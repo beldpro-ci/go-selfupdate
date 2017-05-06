@@ -246,22 +246,32 @@ func (u *Updater) fetchAndApplyPatch(old io.Reader) ([]byte, error) {
 	var patchUrl = u.DiffURL + fmt.Sprintf("%s/%s/%s",
 		argCmdName, argCurrentVersion, argInfoVersion, argPlatform)
 
-	log.WithField("patch-url", patchUrl).Debug("Starting to fetch patch")
+	var logger = log.
+		WithField("diffUrl", u.DiffURL).
+		WithField("cmdName", argCmdName).
+		WithField("currentVersion", argCurrentVersion).
+		WithField("infoVersion", argInfoVersion).
+		WithField("platform", argPlatform).
+		WithField("patch-url", patchUrl)
+
+	logger.Debug("Starting to fetch patch")
 
 	r, err := u.fetch(patchUrl)
 	if err != nil {
-		return nil, errors.Wrapf(err,
-			"Errored fetching path (url=%s)",
-			patchUrl)
+		err = errors.Wrapf(err,
+			"Errored fetching path")
+		logger.Warn(err)
+		return nil, err
 	}
 	defer r.Close()
 	var buf bytes.Buffer
 
 	err = binarydist.Patch(old, &buf, r)
 	if err != nil {
-		return nil, errors.Wrapf(err,
-			"Errored using binarydist to patch (url=%s)",
-			patchUrl)
+		err = errors.Wrapf(err,
+			"Errored using binarydist to patch (url=%s)", patchUrl)
+		logger.Warn(err)
+		return nil, err
 	}
 
 	return buf.Bytes(), nil
