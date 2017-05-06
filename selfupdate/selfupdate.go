@@ -243,7 +243,7 @@ func (u *Updater) fetchAndApplyPatch(old io.Reader) ([]byte, error) {
 	var argCurrentVersion = url.QueryEscape(u.CurrentVersion)
 	var argInfoVersion = url.QueryEscape(u.Info.Version)
 	var argPlatform = url.QueryEscape(plat)
-	var patchUrl = u.DiffURL + fmt.Sprintf("%s/%s/%s",
+	var patchUrl = u.DiffURL + fmt.Sprintf("%s/%s/%s/%s",
 		argCmdName, argCurrentVersion, argInfoVersion, argPlatform)
 
 	var logger = log.
