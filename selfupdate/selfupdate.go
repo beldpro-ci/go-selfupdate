@@ -298,25 +298,37 @@ func (u *Updater) fetchBin() ([]byte, error) {
 	var fetchUrl = u.BinURL + fmt.Sprintf("%s/%s/%s.gz",
 		argCmdName, argInfoVersion, argPlatform)
 
-	log.WithField("url", fetchUrl).Debug("Starting to fetch full binary")
+	var logger = log.
+		WithField("cmdName", argCmdName).
+		WithField("infoVersion", argInfoVersion).
+		WithField("platform", argPlatform).
+		WithField("fetchUrl", fetchUrl)
+
+	logger.Debug("Starting to fetch full binary")
 
 	r, err := u.fetch(fetchUrl)
 	if err != nil {
-		return nil, errors.Wrapf(err,
+		err = errors.Wrapf(err,
 			"Failed to fetch full binary (url=%s)",
 			fetchUrl)
+		logger.Warn(err)
+		return nil, err
 	}
 	defer r.Close()
 	buf := new(bytes.Buffer)
 
 	gz, err := gzip.NewReader(r)
 	if err != nil {
-		return nil, errors.Wrapf(err,
+		err = errors.Wrapf(err,
 			"Failed to create gzip reader")
+		logger.Warn(err)
+		return nil, err
 	}
 	if _, err = io.Copy(buf, gz); err != nil {
-		return nil, errors.Wrapf(err,
+		err = errors.Wrapf(err,
 			"Failed to copy gzip content to buf")
+		logger.Warn(err)
+		return nil, err
 	}
 
 	return buf.Bytes(), nil
